@@ -1,8 +1,8 @@
 """
 Sample AI Player: RandomPlayer
 
-ランダムに行動するAIプレイヤー。
-参考用のサンプル実装です。
+ランダムに行動するAIプレイヤー
+参考用のサンプル実装
 """
 
 import random
@@ -12,7 +12,6 @@ from tcg.controller import Controller
 
 
 class RandomPlayer(Controller):
-    """Random AI player that makes random valid moves."""
 
     def __init__(self) -> None:
         super().__init__()
@@ -20,7 +19,7 @@ class RandomPlayer(Controller):
         self.step = 0
 
     def team_name(self):
-        return "Random_kun"
+        return "RandomPlayer"
 
     def update(self, info) -> tuple[int, int, int]:
         self.team, self.state, self.moving_pawns, self.spawning_pawns, self.done = info

@@ -8,7 +8,7 @@ src/tcg/players/ ディレクトリ内の全AIプレイヤーを自動検出し�
     uv run python tournament.py
 
 オプション:
-    - ウィンドウ表示: src/tcg/config.py の ON_window を True に設定
+    - ウィンドウ表示: ENABLE_WINDOW を True/False に設定
     - 試合数: MATCHES_PER_PAIR を変更
 """
 
@@ -17,16 +17,18 @@ from itertools import combinations
 
 import pygame
 
-from tcg.config import ON_window
 from tcg.controller import Controller
 from tcg.game import Game
 from tcg.players import discover_players
 
 # トーナメント設定
 MATCHES_PER_PAIR = 3  # 各対戦カードで実行する試合数
+ENABLE_WINDOW = True  # ウィンドウ表示の有効/無効
 
 
-def run_match(player1: Controller, player2: Controller, match_id: int = 1) -> dict:
+def run_match(
+    player1: Controller, player2: Controller, match_id: int = 1, window: bool = True
+) -> dict:
     """
     1試合を実行して結果を返す
 
@@ -34,6 +36,7 @@ def run_match(player1: Controller, player2: Controller, match_id: int = 1) -> di
         player1: プレイヤー1（青/下側）
         player2: プレイヤー2（赤/上側）
         match_id: 試合番号
+        window: ウィンドウ表示の有効/無効
 
     Returns:
         dict: 試合結果
@@ -42,7 +45,7 @@ def run_match(player1: Controller, player2: Controller, match_id: int = 1) -> di
             - red_fortresses: 赤チームの要塞数
             - steps: 総ステップ数
     """
-    game = Game(player1, player2)
+    game = Game(player1, player2, window=window)
     game.run()
 
     result = {
@@ -52,7 +55,7 @@ def run_match(player1: Controller, player2: Controller, match_id: int = 1) -> di
         "steps": game.step,
     }
 
-    if not ON_window:
+    if not window:
         print(
             f"  Match {match_id}: {game.win_team} Win! "
             f"(Blue: {game.Blue_fortress}, Red: {game.Red_fortress}, Steps: {game.step})"
@@ -61,13 +64,16 @@ def run_match(player1: Controller, player2: Controller, match_id: int = 1) -> di
     return result
 
 
-def run_tournament(players: list[type[Controller]], matches_per_pair: int = 3):
+def run_tournament(
+    players: list[type[Controller]], matches_per_pair: int = 3, window: bool = True
+):
     """
     総当たり戦トーナメントを実行
 
     Args:
         players: プレイヤークラスのリスト
         matches_per_pair: 各対戦で実行する試合数
+        window: ウィンドウ表示の有効/無効
     """
     if len(players) < 2:
         print("エラー: 最低2人のプレイヤーが必要です")
@@ -84,7 +90,7 @@ def run_tournament(players: list[type[Controller]], matches_per_pair: int = 3):
 
     print(f"\n各対戦: {matches_per_pair}試合")
     print(f"総試合数: {len(list(combinations(range(len(players)), 2))) * matches_per_pair * 2}試合")
-    print(f"ビジュアライゼーション: {'ON' if ON_window else 'OFF'}")
+    print(f"ビジュアライゼーション: {'ON' if window else 'OFF'}")
     print("=" * 70)
 
     # 統計情報を記録
@@ -107,7 +113,7 @@ def run_tournament(players: list[type[Controller]], matches_per_pair: int = 3):
         for round_num in range(1, matches_per_pair + 1):
             # プレイヤー1が青（下側/先攻）
             print(f"  Round {round_num}A: {player1_name}(Blue) vs {player2_name}(Red)")
-            result = run_match(player1_class(), player2_class(), match_count + 1)
+            result = run_match(player1_class(), player2_class(), match_count + 1, window=window)
             match_count += 1
 
             # 統計更新
@@ -128,7 +134,7 @@ def run_tournament(players: list[type[Controller]], matches_per_pair: int = 3):
 
             # プレイヤー2が青（下側/先攻）
             print(f"  Round {round_num}B: {player2_name}(Blue) vs {player1_name}(Red)")
-            result = run_match(player2_class(), player1_class(), match_count + 1)
+            result = run_match(player2_class(), player1_class(), match_count + 1, window=window)
             match_count += 1
 
             # 統計更新
@@ -214,10 +220,10 @@ def main():
         return
 
     # トーナメント実行
-    run_tournament(players, matches_per_pair=MATCHES_PER_PAIR)
+    run_tournament(players, matches_per_pair=MATCHES_PER_PAIR, window=ENABLE_WINDOW)
 
     # Pygameの終了処理
-    if ON_window:
+    if ENABLE_WINDOW:
         pygame.quit()
 
 

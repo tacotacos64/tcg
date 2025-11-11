@@ -22,7 +22,6 @@ class TemplatePlayer(Controller):
 
     def __init__(self) -> None:
         super().__init__()
-        # ここに必要な変数を追加
         self.step = 0
 
     def team_name(self) -> str:
@@ -34,7 +33,7 @@ class TemplatePlayer(Controller):
         Returns:
             str: プレイヤー名
         """
-        return "TemplateName"  # ← あなたの名前に変更してください
+        return "TemplateName"
 
     def update(self, info) -> tuple[int, int, int]:
         """
@@ -44,7 +43,7 @@ class TemplatePlayer(Controller):
 
         Args:
             info: ゲーム情報のタプル
-                - team (int): 自分のチームID (1 or 2)
+                - team (int): 自分 1、相手 2、中立 0
                 - state (list): 12個の要塞の状態
                     state[i] = [team, kind, level, pawn_number, upgrade_time, [to_set]]
                 - moving_pawns (list): 移動中の部隊情報

@@ -173,7 +173,9 @@ class MyAI(Controller):
 
 ## ビジュアライゼーション制御
 
-- `ON_window = True/False`: `src/tcg/config.py`でビジュアライゼーションの切り替え
+- `Game`クラスの`window`引数で制御（デフォルト: `True`）
+  - ウィンドウ表示あり: `Game(player1, player2)` または `Game(player1, player2, window=True)`
+  - ウィンドウ表示なし（高速実行）: `Game(player1, player2, window=False)`
 - ウィンドウの表示内容：要塞の状態、部隊数、レベル、アップグレードタイマー
 - 背景色は要塞の支配状況に基づいて変化（赤/青のグラデーション）
 - フォント: "resources/BestTen-DOT.otf"（存在しない場合は`pygame.font.Font(None, size)`でデフォルトフォントを使用）
@@ -182,5 +184,5 @@ class MyAI(Controller):
 
 - 新しいAIを作成したら、`src/main.py`でインポートして使用する
 - ゲーム速度は`config.py`の`SPEEDRATE`と`FPS`で調整
-- デバッグ時は`ON_window = False`にして高速実行可能
+- デバッグ時は`Game(..., window=False)`でウィンドウ非表示にして高速実行可能
 - GNN用のグラフ表現は`edge_index`と`Edge_dict`を使用

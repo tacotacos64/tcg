@@ -12,7 +12,6 @@ from .config import (
     WIDTH,
     A_coordinate,
     A_fortress_set,
-    ON_window,
     color_fortress,
     color_pawn,
     fortress_cool,
@@ -22,18 +21,19 @@ from .config import (
     swap_number_l,
 )
 from .controller import Controller
-from .utils import Swap_up_bottom
+from .utils import flip_board_view
 
 
 class Game:
-    def __init__(self, controller1: Controller, controller2: Controller):
+    def __init__(self, controller1: Controller, controller2: Controller, window: bool = True):
         self.controller1 = controller1  # bottom
         self.controller2 = controller2  # up
+        self.window_enabled = window
 
         self.team1 = self.controller1.team_name()
         self.team2 = self.controller2.team_name()
 
-        if ON_window:
+        if self.window_enabled:
             pygame.init()
             self.font = pygame.font.Font(None, 16)
             self.font_number = pygame.font.Font(None, 36)
@@ -78,7 +78,7 @@ class Game:
 
     def draw_fortress(self):
         """Draw fortresses on screen."""
-        if not ON_window:
+        if not self.window_enabled:
             return
         r = 0
         for x, y in pos_fortress:
@@ -95,7 +95,7 @@ class Game:
 
     def draw_road(self):
         """Draw roads between fortresses."""
-        if not ON_window:
+        if not self.window_enabled:
             return
         for i in range(n_fortress):
             for j in range(n_fortress):
@@ -106,7 +106,7 @@ class Game:
 
     def draw_number(self):
         """Draw numbers on fortresses."""
-        if not ON_window:
+        if not self.window_enabled:
             return
         for i in range(12):
             text = self.font.render(f"Lv {self.state[i][2]}", True, (0, 0, 0))
@@ -162,7 +162,7 @@ class Game:
 
     def draw_pawn(self):
         """Draw pawns on screen."""
-        if not ON_window:
+        if not self.window_enabled:
             return
         for i in range(len(self.moving_pawns)):
             team, kind, from_, to, pos = self.moving_pawns[i]
@@ -329,7 +329,7 @@ class Game:
 
     def check_event(self, event):
         """Check pygame events."""
-        if not ON_window:
+        if not self.window_enabled:
             return
         for e in pygame.event.get():
             if e.type == event:
@@ -369,8 +369,8 @@ class Game:
 
                 # Controller1 gets team 1 perspective (bottom player)
                 info_1 = [1, self.state, self.moving_pawns, self.spawning_pawns, self.done]
-                # Controller2 gets swapped perspective (always sees themselves as bottom)
-                info_2 = Swap_up_bottom(
+                # Controller2 gets flipped perspective (always sees themselves as team 1)
+                info_2 = flip_board_view(
                     [2, self.state, self.moving_pawns, self.spawning_pawns, self.done]
                 )
 
@@ -396,7 +396,7 @@ class Game:
                 if self.CheckGameOver():
                     self.isGameOver_loop = True
 
-            if ON_window:
+            if self.window_enabled:
                 back_color = [150, 150, 150]
                 if self.Red_fortress == self.Blue_fortress:
                     back_color[1] += 105
@@ -432,7 +432,7 @@ class Game:
                 self.draw_number()
                 self.draw_team_name()
 
-            if ON_window:
+            if self.window_enabled:
                 pygame.display.update()
                 self.fps(int(FPS))
 

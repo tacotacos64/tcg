@@ -11,9 +11,6 @@ FPS = 30  # Frames per second
 TIMELIMIT = 1000
 STEPLIMIT = 50000
 
-# Window display
-ON_window = True  # Set to False for headless mode (faster execution)
-
 # Colors
 color_fortress = [(200, 200, 200), (100, 255, 255), (255, 100, 110)]
 color_pawn = [(0, 0, 0), (100, 100, 255), (255, 50, 50)]

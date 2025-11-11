@@ -8,8 +8,8 @@ def Swap_team(team):
     return 0 if team == 0 else 1 if team == 2 else 2
 
 
-def Swap_up_bottom(info):
-    """Swap perspective between top and bottom players."""
+def flip_board_view(info):
+    """Flip board view so the player always sees themselves as team 1."""
     team, state, moving_pawns, spawning_pawns, done = info
 
     if team == 1:
