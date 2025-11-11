@@ -1,0 +1,40 @@
+[project]
+name = "tcg"
+version = "0.1.0"
+description = "Fortress Conquest Game - A real-time strategy game"
+readme = "README.md"
+authors = [
+    { name = "matt", email = "matt76k@gmail.com" }
+]
+requires-python = ">=3.12.3"
+dependencies = [
+    "pygame>=2.6.1",
+    "numpy",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.metadata]
+allow-direct-references = true
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/tcg"]
+
+[dependency-groups]
+dev = [
+    "ruff>=0.14.4",
+]
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "I"]  # pycodestyle, pyflakes, isort
+ignore = []
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
