@@ -196,7 +196,7 @@ class Game:
         """Create spawn point for pawns."""
         if team == self.state[from_][0] and self.state[from_][3] >= 2:
             if A_coordinate[from_][to] == 0:
-                print(f"team: {team}")
+                # print(f"team: {team}")
                 return 0
             pos = [
                 pos_fortress[from_][0] + A_coordinate[from_][to][0] * 42,
