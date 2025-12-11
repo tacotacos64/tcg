@@ -123,10 +123,14 @@ class RightHeavyExpansionist(Controller):
         
         if upper_count > lower_count:
             my_side = "upper"
-            home_ids = [0, 1, 2]
+            all_home_ids = [0, 1, 2]
         else:
             my_side = "lower"
-            home_ids = [9, 10, 11]
+            all_home_ids = [9, 10, 11]
+            
+        # Select top 2 important home fortresses
+        all_home_ids.sort(key=lambda x: self.get_importance(x, my_side), reverse=True)
+        home_ids = all_home_ids[:2] # Only top 2
 
         # --- Phase 1: Secure Home Base ---
         
