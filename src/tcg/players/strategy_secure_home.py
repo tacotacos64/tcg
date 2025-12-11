@@ -57,6 +57,65 @@ class SecureHomeExpansionist(Controller):
         produced = steps // cool
         return min(limit, pawn_number + produced)
 
+    def get_capture_time_estimate(self, my_idx, target_idx, state, upgrade=False):
+        # My stats
+        my_team, my_kind, my_level, my_pawns, my_upgrade_timer, _ = state[my_idx]
+        
+        # Target stats
+        tgt_team, tgt_kind, tgt_level, tgt_pawns, _, _ = state[target_idx]
+        
+        limit_l = fortress_limit[my_level]
+        cool_l = fortress_cool[my_kind][my_level]
+        
+        tgt_limit = fortress_limit[tgt_level]
+        tgt_cool = fortress_cool[tgt_kind][tgt_level]
+        
+        dist_steps = self.estimate_travel_steps(my_idx, target_idx)
+        
+        current_time = 0
+        sim_my_pawns = my_pawns
+        sim_my_level = my_level
+        sim_limit = limit_l
+        sim_cool = cool_l
+        
+        # If upgrading
+        if upgrade:
+            if my_level >= 5:
+                return float('inf')
+            
+            upgrade_cost = limit_l // 2
+            
+            # Time to start upgrade
+            if sim_my_pawns < upgrade_cost:
+                wait_steps = int((upgrade_cost - sim_my_pawns) * sim_cool)
+                current_time += wait_steps
+                sim_my_pawns = upgrade_cost 
+            
+            # Perform upgrade
+            current_time += 200
+            # Pawns produced during upgrade
+            produced = 200 // sim_cool
+            sim_my_pawns = (sim_my_pawns - upgrade_cost) + produced
+            
+            # Level up
+            sim_my_level += 1
+            sim_limit = fortress_limit[sim_my_level]
+            sim_cool = fortress_cool[my_kind][sim_my_level]
+            
+        # Iterate to find earliest win time
+        # We simulate pawn growth up to limit
+        for p in range(int(sim_my_pawns), sim_limit + 1):
+            wait_steps = int((p - sim_my_pawns) * sim_cool)
+            arrival_time = current_time + wait_steps + dist_steps
+            
+            # Target prediction
+            pred_tgt = min(tgt_limit, tgt_pawns + arrival_time // tgt_cool)
+            
+            if p // 2 > pred_tgt:
+                return current_time + wait_steps
+        
+        return float('inf')
+
     def update(self, info):
         team_id, state, moving_pawns, spawning_pawns, done = info
         
@@ -84,9 +143,8 @@ class SecureHomeExpansionist(Controller):
                 if not my_neighbors:
                     continue
                 
-                # Calculate force
+                # 1. Check if we can attack NOW with coordinated force
                 total_attack_force = sum(state[m][3] // 2 for m in my_neighbors)
-                
                 max_steps = max(self.estimate_travel_steps(m, target) for m in my_neighbors)
                 target_future_pawns = self.predict_future_pawns(target, max_steps, state)
                 
@@ -96,6 +154,28 @@ class SecureHomeExpansionist(Controller):
                     attacker = my_neighbors[0]
                     if state[attacker][3] > 1:
                         return 1, attacker, target
+                
+                # 2. If we cannot attack now, decide whether to Wait or Upgrade
+                # We check the primary neighbor (most troops)
+                my_neighbors.sort(key=lambda x: state[x][3], reverse=True)
+                primary = my_neighbors[0]
+                
+                time_wait = self.get_capture_time_estimate(primary, target, state, upgrade=False)
+                time_upgrade = self.get_capture_time_estimate(primary, target, state, upgrade=True)
+                
+                if time_upgrade < time_wait:
+                    # Upgrade is faster (or necessary if wait is infinite)
+                    limit = fortress_limit[state[primary][2]]
+                    upgrade_cost = limit // 2
+                    if state[primary][3] >= upgrade_cost and state[primary][4] == -1:
+                        return 2, primary, 0
+                    else:
+                        # Wait for resources to upgrade
+                        return 0, 0, 0
+                else:
+                    # Wait is faster (or both infinite)
+                    # If both infinite, we might need coordinated wait, so we wait.
+                    return 0, 0, 0
 
         # --- Phase 2: Standard Expansionist Logic ---
         
