@@ -132,6 +132,8 @@ class SecureHomeExpansionist(Controller):
 
         # --- Phase 1: Secure Home Base ---
         
+        reserved_fortresses = set()
+        
         # 1.1 Secure missing home fortresses
         missing_home = [i for i in home_ids if state[i][0] != 1]
         if missing_home:
@@ -163,6 +165,9 @@ class SecureHomeExpansionist(Controller):
                 time_wait = self.get_capture_time_estimate(primary, target, state, upgrade=False)
                 time_upgrade = self.get_capture_time_estimate(primary, target, state, upgrade=True)
                 
+                if time_wait == float('inf') and time_upgrade == float('inf'):
+                    continue
+
                 if time_upgrade < time_wait:
                     # Upgrade is faster (or necessary if wait is infinite)
                     limit = fortress_limit[state[primary][2]]
@@ -171,11 +176,33 @@ class SecureHomeExpansionist(Controller):
                         return 2, primary, 0
                     else:
                         # Wait for resources to upgrade
-                        return 0, 0, 0
+                        reserved_fortresses.add(primary)
                 else:
                     # Wait is faster (or both infinite)
                     # If both infinite, we might need coordinated wait, so we wait.
-                    return 0, 0, 0
+                    reserved_fortresses.add(primary)
+                    for m in my_neighbors:
+                        reserved_fortresses.add(m)
+
+            # 3. Upgrade non-reserved fortresses (Phase 1 logic)
+            my_fortresses = [i for i, s in enumerate(state) if s[0] == 1]
+            random.shuffle(my_fortresses)
+            
+            for i in my_fortresses:
+                if i in reserved_fortresses:
+                    continue
+                
+                level = state[i][2]
+                pawn_count = state[i][3]
+                limit = fortress_limit[level]
+                upgrade_cost = limit // 2
+                is_upgrading = state[i][4] != -1
+                
+                if level < 5 and not is_upgrading and pawn_count >= upgrade_cost:
+                    return 2, i, 0
+            
+            # If in Phase 1, we don't do anything else
+            return 0, 0, 0
 
         # --- Phase 2: Standard Expansionist Logic ---
         
