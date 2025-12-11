@@ -1,7 +1,8 @@
 
 import random
+import math
 from tcg.controller import Controller
-from tcg.config import fortress_limit
+from tcg.config import fortress_limit, pos_fortress, fortress_cool
 
 class RapidExpansionist(Controller):
     """
@@ -9,6 +10,8 @@ class RapidExpansionist(Controller):
     - 中立の砦（Neutral Fortresses）の確保を最優先します。
     - 敵よりも早く砦数を増やすことを目指します。
     - 中立砦が隣接している場合、積極的に兵を送ります。
+    - 攻撃時は相手の生産速度も考慮して、確実に勝てる場合のみ攻撃します。
+    - 支援時は攻撃を受けている砦や前線を優先します。
     """
     def team_name(self) -> str:
         return "Expansionist"
@@ -36,6 +39,32 @@ class RapidExpansionist(Controller):
         else:
             return self.FORTRESS_IMPORTANCE_LOWER[fort_id]
 
+    def estimate_travel_steps(self, from_id, to_id):
+        p1 = pos_fortress[from_id]
+        p2 = pos_fortress[to_id]
+        dist = math.sqrt((p1[0] - p2[0])**2 + (p1[1] - p2[1])**2)
+        # Speed is 1.5. Start offset 42, End offset 45.
+        # Travel distance approx dist - 87.
+        # But let's be conservative and just use dist / 1.5
+        # Actually, game logic:
+        # Spawn at 42 from center. Arrive at 45 from center.
+        # So travel is roughly dist - 87.
+        travel_dist = max(0, dist - 87)
+        return int(travel_dist / 1.5)
+
+    def predict_future_pawns(self, fort_id, steps, state):
+        team, kind, level, pawn_number, _, _ = state[fort_id]
+        limit = fortress_limit[level]
+        
+        # If it's neutral (team 0) or enemy (team 2), it produces pawns
+        # Note: In this controller, we are always team 1.
+        if team == 1:
+            return pawn_number # Should not happen for attack target
+            
+        cool = fortress_cool[kind][level]
+        produced = steps // cool
+        return min(limit, pawn_number + produced)
+
     def update(self, info):
         team_id, state, moving_pawns, spawning_pawns, done = info
         
@@ -62,10 +91,16 @@ class RapidExpansionist(Controller):
                 
             # Calculate total available attacking force from all connected friendly fortresses
             total_attack_force = sum(state[m][3] // 2 for m in my_neighbors)
-            target_pawns = state[n][3]
             
-            # 自陣の砦の兵数/2 > 攻撃対象の砦なら攻撃
-            if total_attack_force > target_pawns:
+            # Calculate max travel time to ensure we beat the production
+            max_steps = 0
+            if my_neighbors:
+                max_steps = max(self.estimate_travel_steps(m, n) for m in my_neighbors)
+            
+            target_future_pawns = self.predict_future_pawns(n, max_steps, state)
+            
+            # 自陣の砦の兵数/2 > 攻撃対象の砦(将来)なら攻撃
+            if total_attack_force > target_future_pawns:
                 # Attack!
                 # Choose the neighbor with the most troops to attack first
                 my_neighbors.sort(key=lambda x: state[x][3], reverse=True)
@@ -102,7 +137,29 @@ class RapidExpansionist(Controller):
                     enemies.sort(key=lambda x: state[x][3])
                     return 1, i, enemies[0]
                 elif allies:
-                    # Reinforce random ally
-                    return 1, i, random.choice(allies)
+                    # Reinforce ally
+                    # Priority 1: Allies under attack
+                    under_attack = set()
+                    for p in moving_pawns:
+                        # p: [team, kind, from, to, pos]
+                        # If enemy (team 2) is moving to an ally
+                        if p[0] == 2 and p[3] in allies:
+                            under_attack.add(p[3])
+                    
+                    # Priority 2: Front-line allies (have enemy neighbors)
+                    front_line = [a for a in allies if any(state[n][0] == 2 for n in state[a][5])]
+                    
+                    target = None
+                    if under_attack:
+                        # Prioritize the one with lowest troops among those under attack
+                        target = min(under_attack, key=lambda x: state[x][3])
+                    elif front_line:
+                        # Prioritize front line with lowest troops
+                        target = min(front_line, key=lambda x: state[x][3])
+                    else:
+                        # Random ally
+                        target = random.choice(allies)
+                        
+                    return 1, i, target
         
         return 0, 0, 0
