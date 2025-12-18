@@ -10,6 +10,9 @@ class MLPlayer(Controller):
     """
     AI Player using a trained MaskablePPO model.
     """
+    _cached_model = None
+    _cached_model_path = None
+
     def __init__(self, model_path=None):
         if model_path is None:
             # Default path relative to project root
@@ -18,18 +21,20 @@ class MLPlayer(Controller):
             # parents[0] = player_ml
             # parents[1] = players
             # parents[2] = tcg
-            tcg_dir = Path(__file__).parents[2]
-            model_path = tcg_dir / "players_kishida/tcg_ppo_finetuned.zip"
+            tcg_dir = Path(__file__).parents[0]
+            # model_path = tcg_dir / "players_kishida/tcg_ppo_finetuned.zip"
+            model_path = tcg_dir / "tcg_ppo_finetuned.zip"
         
         # Check if model exists
         if not model_path.exists():
              print(f"Warning: Model file not found at {model_path}")
-             # Fallback to pretrained if finetuned not found
-             fallback_path = tcg_dir / "players_kishida/tcg_ppo_final.zip"
-             if fallback_path.exists():
-                 print(f"Falling back to {fallback_path}")
-                 model_path = fallback_path
         
+        # Use cached model if available and path matches
+        if MLPlayer._cached_model is not None and MLPlayer._cached_model_path == model_path:
+            self.model = MLPlayer._cached_model
+            self.team = "ML_PPO"
+            return
+
         # Fix for loading issue: explicitly set policy_class
         try:
             self.model = MaskablePPO.load(
@@ -39,6 +44,11 @@ class MLPlayer(Controller):
                 }
             )
             self.team = "ML_PPO"
+            
+            # Cache the model
+            MLPlayer._cached_model = self.model
+            MLPlayer._cached_model_path = model_path
+            
         except Exception as e:
             print(f"Error loading model: {e}")
             # Create a dummy model or raise error?
