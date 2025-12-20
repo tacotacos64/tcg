@@ -19,8 +19,8 @@ class ONCT(Controller):
         if model_path is None:
             # Only use the final model. If not found, do not load any model.
             player_dir = Path(__file__).parents[0] # src/tcg/players/ -> src/
-            final_model = player_dir / "counter_ml_model_1760000_steps.zip"
-            # final_model = player_dir / "counter_ml_model_final.zip"
+            # final_model = player_dir / "counter_ml_model_1760000_steps.zip"
+            final_model = player_dir / "counter_ml_model_final.zip"
             if final_model.exists():
                 # print(f"Loading TrainedCounter model from {final_model}")
                 self.model_path = final_model
